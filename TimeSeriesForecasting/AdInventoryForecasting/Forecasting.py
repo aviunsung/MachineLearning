@@ -11,7 +11,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 from math import sqrt
+import warnings
+warnings.filterwarnings("ignore")
 
+#Create Evaluatiom Matrix
 evaluation_metrics=pd.DataFrame()
 
 #Mean Absolute Percentage Error (MAPE)
@@ -30,9 +33,9 @@ def calculateError(input_data,predicted_data,model_name):
 
 def plotGraph(predicted_dataframe,column_name,method_label):
     plt.figure(figsize=(16,8))
-    plt.plot(train_data.index, train_data['totalRequests'], label='Train')
-    plt.plot(test_data.index,test_data['totalRequests'], label='Test')
-    plt.plot(predicted_dataframe.index,predicted_dataframe[column_name], label=method_label)
+    #plt.plot(train_data.date, train_data['totalRequests'], label='Train')
+    plt.plot(test_data.date,test_data['totalRequests'], label='Test')
+    plt.plot(test_data.date,predicted_dataframe[column_name], label=method_label)
     plt.legend(loc='best')
     plt.title(method_label)
     plt.show()
@@ -98,11 +101,10 @@ y_hat_exp_avg = test_data.copy()
 
 #Build model
 #alpha=0.6, Smoothing parameter
-ses_model = SimpleExpSmoothing(np.asarray(train_data['totalRequests'])).fit(smoothing_level=0.1,optimized=False)
+ses_model = SimpleExpSmoothing(np.asarray(train_data['totalRequests'])).fit()
 y_hat_exp_avg['SES'] = ses_model.forecast(len(test_data))
 plotGraph(y_hat_exp_avg,'SES','Simple Exponential Smoothing')
 calculateError(test_data.totalRequests,y_hat_exp_avg.SES,'Simple Exponential Smoothing')
-
 
 #5.Holt’s Linear Trend method or Double exponential smoothing 
 #(A method that takes into account the trend of the dataset) 
@@ -117,36 +119,21 @@ seasonal_decompose(x=train_data['totalRequests'],freq=10).plot()
 test_stationarity(test_data.totalRequests)
 result = adfuller(train_data.totalRequests)
 
-ts_log = np.log(test_data.totalRequests)
-plt.plot(ts_log)
-plt.plot(test_data.totalRequests)
-train_data.plot()
-
-
 #Build model
 y_hat_holt_linear = test_data.copy()
-holt_linear_model = Holt(np.asarray(train_data['totalRequests'])).fit(smoothing_level = 0.3,smoothing_slope = 0.1)
+holt_linear_model = Holt(np.asarray(train_data['totalRequests'])).fit()
 y_hat_holt_linear['Holt_linear'] = ses_model.forecast(len(test_data))
 plotGraph(y_hat_holt_linear,'Holt_linear','Holt Linear Trend')
 calculateError(test_data.totalRequests,y_hat_holt_linear.Holt_linear,'Holt Linear')
 
 #6. Holt-Winters Method or Triple exponential smoothing
-#a method that takes into account both trend and seasonality to forecast
+#A method that takes into account both trend and seasonality to forecast
 y_hat_holt_winter = test_data.copy()
-holt_winter_model = ExponentialSmoothing(np.asarray(train_data['totalRequests']) ,seasonal_periods=7 ,trend='add', seasonal='add',).fit()
-y_hat_holt_winter['Holt_Winter'] = holt_winter_model.forecast(len(test_data))
+holt_winter_model = ExponentialSmoothing(np.asarray(train_data['totalRequests']) ,seasonal_periods=7 ,trend='add', seasonal='add')
+holt_winter_model_fit=holt_winter_model.fit()
+y_hat_holt_winter['Holt_Winter'] = holt_winter_model_fit.forecast(len(test_data))
 plotGraph(y_hat_holt_winter,'Holt_Winter','Holt Winter Trend')
 calculateError(test_data.totalRequests,y_hat_holt_winter.Holt_Winter,'Holt Winter')
-
-#7. SARIMA(p,d,q)(P,D,Q)s (Seasonal Autoregressive Integrated Moving average)
-#ARIMA models aim to describe the correlations in the data with each other
-from statsmodels.tsa.statespace.sarimax import SARIMAX
-y_hat_sarima = test_data.copy()
-sarima_model = SARIMAX(train_data.totalRequests, order=(2, 1, 4),seasonal_order=(0,1,1,7)).fit()
-y_hat_sarima_result=pd.DataFrame()
-y_hat_sarima_result['SARIMA'] = sarima_model.predict(start=len(train_data), end=len(train_data)+len(test_data)-1, dynamic=True)
-plotGraph(y_hat_sarima_result,'SARIMA','Seasonal Autoregressive Integrated Moving average')
-calculateError(test_data.totalRequests,y_hat_sarima_result.SARIMA,'SARIMA')
 
 #Plot Model Evaluation Metrics
 evaluation_metrics.plot(y=['MAPE'],kind="bar",color='orange')
