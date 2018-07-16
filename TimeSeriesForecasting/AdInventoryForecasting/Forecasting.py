@@ -37,22 +37,38 @@ def plotGraph(predicted_dataframe,column_name,method_label):
     plt.title(method_label)
     plt.show()
 
+def test_stationarity(timeseries_data):
+    #Determing rolling statistics
+    rolmean = pd.rolling_mean(timeseries_data, window=12)
+    rolstd = pd.rolling_std(timeseries_data, window=12)
+
+    #Plot rolling statistics:
+    plt.plot(timeseries_data, color='blue',label='Original')
+    plt.plot(rolmean, color='red', label='Rolling Mean')
+    plt.plot(rolstd, color='black', label = 'Rolling Std')
+    plt.legend(loc='best')
+    plt.title('Rolling Mean & Standard Deviation')
+    plt.show(block=False)
+    
 train_data=pd.read_excel("/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_train_dataset.xlsx")
 #train_data.index=train_data.date
 
 test_data = pd.read_excel('/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_test_dataset.xlsx')
-#test_data.index=test_data.date
 
 #Visualze Dataset
-plt.figure(figsize=(12,8))
-plt.plot(train_data.index, train_data['totalRequests'], label='Train_totalRequests')
-plt.plot(train_data.index, train_data['paidImpressions'], label='Train_paidImpressions')
-
-plt.plot(test_data.index,test_data['totalRequests'], label='Test_totalRequests')
-plt.plot(test_data.index,test_data['paidImpressions'], label='Test_paidImpressions')
+#Total Requests
+plt.figure(figsize=(16,8))
+plt.plot(train_data.date, train_data['totalRequests'], label='Train_totalRequests')
+plt.plot(test_data.date,test_data['totalRequests'], label='Test_totalRequests')
 plt.legend(loc='best')
-plt.title('Ad Requests Data')
-plt.show()
+plt.title('Total Ad Requests Data')
+
+#Paid Impressions
+plt.figure(figsize=(16,8))
+plt.plot(train_data.date, train_data['paidImpressions'], label='Train_paidImpressions')
+plt.plot(test_data.date,test_data['paidImpressions'], label='Test_paidImpressions')
+plt.legend(loc='best')
+plt.title('Total Paid Impressions Data')
 
 #1. Naive Method
 dd= np.asarray(train_data.totalRequests)
@@ -96,7 +112,16 @@ from statsmodels.tsa.stattools import adfuller
 
 #Check trends & seasonality
 seasonal_decompose(x=train_data['totalRequests'],freq=10).plot()
+
+#Check for Stationarity
+test_stationarity(test_data.totalRequests)
 result = adfuller(train_data.totalRequests)
+
+ts_log = np.log(test_data.totalRequests)
+plt.plot(ts_log)
+plt.plot(test_data.totalRequests)
+train_data.plot()
+
 
 #Build model
 y_hat_holt_linear = test_data.copy()
