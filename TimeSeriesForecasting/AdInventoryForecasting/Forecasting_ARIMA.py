@@ -84,6 +84,28 @@ seasonal_decompose(x=train_data['totalRequests'],freq=10).plot()
 #Check for Stationarity
 test_stationarity(test_data.totalRequests)
 result = adfuller(train_data.totalRequests)
+print(result)
+
+#####Data Preprocessing##################
+####Eliminating Trend & Seasonality###########
+
+#A. Differencing
+train_data_diff=pd.DataFrame()
+train_data_diff['date']=train_data.date
+train_data_diff['totalRequests']=train_data.totalRequests-train_data.totalRequests.shift()
+train_data_diff['paidImpressions']=train_data.paidImpressions-train_data.paidImpressions.shift()
+train_data_diff.dropna(inplace=True)
+test_stationarity(train_data_diff.totalRequests)
+
+#B.Decomposing
+from statsmodels.tsa.seasonal import seasonal_decompose
+decomposition = seasonal_decompose(np.asarray(train_data.totalRequests),freq=10)
+decomposition.plot()
+plt.show()
+train_data_decompose=pd.DataFrame()
+train_data_decompose['date']=train_data.date
+train_data_decompose['totalRequests'] = decomposition.resid
+train_data_decompose.dropna(inplace=True)
 
 #Check for Autocorrelation 
 #(correlation is calculated between the variable and itself at previous time steps)
@@ -162,15 +184,32 @@ y_hat_MA['predictions']=model_MA_fit.forecast(steps=len(test_data))[0]
 plotGraph(y_hat_MA,'predictions','Moving Average(MA)')
 calculateError(test_data.totalRequests,y_hat_MA.predictions,'Moving Average(MA)')
 
+#Predict Paid Impressions
+model_ARIMA = ARIMA(train_data.paidImpressions, order=(0, 1, 1))  
+model_ARIMA_fit = model_ARIMA.fit(disp=-1)
+test_data['Predicted_Paid_Impressions']=model_ARIMA_fit.forecast(steps=len(test_data))[0]
+calculateError(test_data.paidImpressions,test_data.Predicted_Paid_Impressions,'ARIMA')
+
 #3.Autoregressive Integrated Moving average (ARIMA(p,d,q))
 #d=the number of past time points to subtract from the current value(differencing)
 y_hat_ARIMA = pd.DataFrame()
 model_ARIMA = ARIMA(train_data.totalRequests, order=(15, 1, 7))  
-model_ARIMA_fit = model_ARIMA.fit(disp=-1)  
+model_ARIMA_fit = model_ARIMA.fit(disp=-1)
 print(model_ARIMA_fit.summary())
 y_hat_ARIMA['predictions']=model_ARIMA_fit.forecast(steps=len(test_data))[0]
+test_data['Predicted_Total_Requests']=y_hat_ARIMA['predictions']
 plotGraph(y_hat_ARIMA,'predictions','ARIMA')
 calculateError(test_data.totalRequests,y_hat_ARIMA.predictions,'ARIMA')
+
+#Predict Paid Impressions
+from sklearn.linear_model import LinearRegression
+lm=LinearRegression()
+#Train model
+lm.fit(pd.DataFrame(train_data.totalRequests),pd.DataFrame(train_data.paidImpressions))
+#Test model
+predictions=lm.predict(pd.DataFrame(test_data.totalRequests))
+test_data['Predicted_Paid_Impressions']=predictions
+calculateError(test_data.paidImpressions,predictions,'Linear Regression')
 
 #7. SARIMA(p,d,q)(P,D,Q)s (Seasonal Autoregressive Integrated Moving average)
 #ARIMA models aim to describe the correlations in the data with each other

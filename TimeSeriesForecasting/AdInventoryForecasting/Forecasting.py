@@ -135,6 +135,12 @@ y_hat_holt_winter['Holt_Winter'] = holt_winter_model_fit.forecast(len(test_data)
 plotGraph(y_hat_holt_winter,'Holt_Winter','Holt Winter Trend')
 calculateError(test_data.totalRequests,y_hat_holt_winter.Holt_Winter,'Holt Winter')
 
+#Predict Paid Impressions
+holt_winter_model = ExponentialSmoothing(np.asarray(train_data['paidImpressions']) ,seasonal_periods=7 ,trend='add', seasonal='add')
+holt_winter_model_fit=holt_winter_model.fit()
+test_data['Predicted_Paid_Impressions']=holt_winter_model_fit.forecast(len(test_data))
+calculateError(test_data.paidImpressions,test_data.Predicted_Paid_Impressions,'Holt Winter')
+
 #Plot Model Evaluation Metrics
 evaluation_metrics.plot(y=['MAPE'],kind="bar",color='orange')
 evaluation_metrics.plot(y=['RMSE'],kind="bar")
