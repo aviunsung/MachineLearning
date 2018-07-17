@@ -20,14 +20,26 @@ def mape(y_pred,y_true):
     y_true, y_pred = np.array(y_true), np.array(y_pred)
     return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
 
+def calculate_accuracy(actual,predicted, perError):
+    if len(actual) != len(predicted):
+        return -1
+    pr = (np.abs((actual.values - predicted.values))/ actual)*100
+    pr = pr <= perError
+    perc = (np.sum(pr)/len(pr))*100
+    return perc
+
 #Calculate RMSE and MAPE
 def calculateError(input_data,predicted_data,model_name):
     rmse = sqrt(mean_squared_error(input_data, predicted_data))
     map_error=mape(input_data, predicted_data)
+    accuracy=calculate_accuracy(input_data, predicted_data,10)
     print('RMSE='+str(rmse))
     print('MAPE='+str(map_error))
+    print('Accuracy='+str(accuracy))
     evaluation_metrics.set_value(model_name,'RMSE',rmse)
     evaluation_metrics.set_value(model_name,'MAPE',map_error)
+    evaluation_metrics.set_value(model_name,'Accuracy',accuracy)
+
 
 def plotGraph(predicted_dataframe,column_name,method_label):
     plt.figure(figsize=(16,8))
@@ -52,9 +64,7 @@ def test_stationarity(timeseries_data):
     plt.title('Rolling Mean & Standard Deviation')
     plt.show(block=False)
     
-train_data=pd.read_excel("/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_train_dataset.xlsx")
-#train_data.index=train_data.date
-
+train_data=pd.read_excel("/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_train_dataset_2016-18.xlsx")
 test_data = pd.read_excel('/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_test_dataset.xlsx')
 
 #Visualze Dataset
@@ -149,22 +159,24 @@ plt.show()
 #It says current series values depend on its previous values with some lag (or several lags),which is referred to as p
 from statsmodels.tsa.ar_model import AR
 from statsmodels.tsa.arima_model import ARIMA
-
-#Use AR
 y_hat_AR = pd.DataFrame()
-model = AR(train_data.totalRequests)
-model_fit = model.fit()
-#p=no of lag variables used (order of AR)
-#alpha=coefficients used with lag variables
-print('Lag: %s' % model_fit.k_ar)
-print('Coefficients: %s' % model_fit.params)
-# make predictions
-y_hat_AR['predictions'] = model_fit.predict(start=len(train_data), end=len(train_data)+len(test_data)-1, dynamic=False)
-plotGraph(y_hat_AR,'predictions','Autoregression')
-calculateError(test_data.totalRequests,y_hat_AR.predictions,'Autoregression')
 
+# =============================================================================
+# #Use AR
+# model = AR(train_data.totalRequests)
+# model_fit = model.fit()
+# #p=no of lag variables used (order of AR)
+# #alpha=coefficients used with lag variables
+# print('Lag: %s' % model_fit.k_ar)
+# print('Coefficients: %s' % model_fit.params)
+# # make predictions
+# y_hat_AR['predictions'] = model_fit.predict(start=len(train_data), end=len(train_data)+len(test_data)-1, dynamic=False)
+# plotGraph(y_hat_AR,'predictions','Autoregression')
+# calculateError(test_data.totalRequests,y_hat_AR.predictions,'Autoregression')
+# 
+# =============================================================================
 #Use ARIMA
-model_AR = ARIMA(train_data.totalRequests, order=(15, 1, 0))  
+model_AR = ARIMA(train_data.totalRequests, order=(1, 1, 0))  
 model_AR_fit = model_AR.fit(disp=0) 
 print(model_AR_fit.summary())
 y_hat_AR['predictions']=model_AR_fit.forecast(steps=len(test_data))[0]
@@ -193,7 +205,7 @@ calculateError(test_data.paidImpressions,test_data.Predicted_Paid_Impressions,'A
 #3.Autoregressive Integrated Moving average (ARIMA(p,d,q))
 #d=the number of past time points to subtract from the current value(differencing)
 y_hat_ARIMA = pd.DataFrame()
-model_ARIMA = ARIMA(train_data.totalRequests, order=(15, 1, 7))  
+model_ARIMA = ARIMA(train_data.totalRequests, order=(1, 1, 7))  
 model_ARIMA_fit = model_ARIMA.fit(disp=-1)
 print(model_ARIMA_fit.summary())
 y_hat_ARIMA['predictions']=model_ARIMA_fit.forecast(steps=len(test_data))[0]
@@ -201,21 +213,11 @@ test_data['Predicted_Total_Requests']=y_hat_ARIMA['predictions']
 plotGraph(y_hat_ARIMA,'predictions','ARIMA')
 calculateError(test_data.totalRequests,y_hat_ARIMA.predictions,'ARIMA')
 
-#Predict Paid Impressions
-from sklearn.linear_model import LinearRegression
-lm=LinearRegression()
-#Train model
-lm.fit(pd.DataFrame(train_data.totalRequests),pd.DataFrame(train_data.paidImpressions))
-#Test model
-predictions=lm.predict(pd.DataFrame(test_data.totalRequests))
-test_data['Predicted_Paid_Impressions']=predictions
-calculateError(test_data.paidImpressions,predictions,'Linear Regression')
-
 #7. SARIMA(p,d,q)(P,D,Q)s (Seasonal Autoregressive Integrated Moving average)
 #ARIMA models aim to describe the correlations in the data with each other
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 y_hat_sarima = test_data.copy()
-sarima_model = SARIMAX(train_data.totalRequests, order=(2, 1, 4),seasonal_order=(0,1,1,7)).fit()
+sarima_model = SARIMAX(train_data.totalRequests, order=(4, 1, 1),seasonal_order=(0,1,1,7)).fit(optimize=True)
 y_hat_sarima_result=pd.DataFrame()
 y_hat_sarima_result['SARIMA'] = sarima_model.predict(start=len(train_data), end=len(train_data)+len(test_data)-1, dynamic=True)
 plotGraph(y_hat_sarima_result,'SARIMA','Seasonal Autoregressive Integrated Moving average')
