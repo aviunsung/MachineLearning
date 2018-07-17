@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_squared_error
 from math import sqrt
+
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -74,24 +75,56 @@ plt.legend(loc='best')
 plt.title('Total Paid Impressions Data')
 
 #1. Naive Method
-dd= np.asarray(train_data.totalRequests)
 y_hat = test_data.copy()
-y_hat['naive'] = dd[len(dd)-1]
+y_hat['naive'] = train_data.totalRequests.iloc[-1]
 plotGraph(y_hat,'naive','Naive Forecast')
 calculateError(test_data.totalRequests,y_hat.naive,'Naive')
 
 
-#2. Simple Avergae
+#2. Simple Average
 y_hat_avg = test_data.copy()
-y_hat_avg['avg_forecast'] = train_data['totalRequests'].mean()
+avg_series= []
+training_series=list(train_data['totalRequests'])
+for i in range(len(test_data)):
+    mean_value=pd.Series(training_series).mean()
+    #print('mean='+str(mean_value))
+    avg_series.append(mean_value)
+    training_series.append(mean_value)
+
+y_hat_avg['avg_forecast'] =avg_series  
 plotGraph(y_hat_avg,'avg_forecast','Average Forecast')
 calculateError(test_data.totalRequests,y_hat_avg.avg_forecast,'Simple Average')
 
-#3. Moving Window/Sliding technique
+#3. Moving Average Window/Sliding technique
 y_hat_mvng_avg = test_data.copy()
-y_hat_mvng_avg['moving_avg_forecast'] = train_data['totalRequests'].rolling(120).mean().iloc[-1]
+avg_series= []
+training_series=list(train_data['totalRequests'])
+for i in range(len(test_data)):
+    mean_value=pd.Series(training_series).rolling(7).mean().iloc[-1]
+    #print('mean='+str(mean_value))
+    avg_series.append(mean_value)
+    training_series.append(mean_value)
+
+y_hat_mvng_avg['moving_avg_forecast'] = avg_series
 plotGraph(y_hat_mvng_avg,'moving_avg_forecast','Moving Average Forecast')
 calculateError(test_data.totalRequests,y_hat_mvng_avg.moving_avg_forecast,'Moving Average')
+
+#3.1 Weighted Moving Average technique
+y_hat_wmvng_avg = test_data.copy()
+avg_series= []
+weights=np.random.dirichlet(np.ones(10),size=1)
+weights=pd.Series(weights[0]).sort_values(ascending=False)
+training_series=list(train_data['totalRequests'])
+for i in range(len(test_data)):
+    mean_value=np.average(np.asarray(training_series[len(training_series)-10:]),weights=weights)
+    #print('mean='+str(mean_value))
+    avg_series.append(mean_value)
+    training_series.append(mean_value)
+
+y_hat_wmvng_avg['weighted_moving_avg_forecast'] = avg_series
+plotGraph(y_hat_wmvng_avg,'weighted_moving_avg_forecast','Weighted Moving Average Forecast')
+calculateError(test_data.totalRequests,y_hat_wmvng_avg.weighted_moving_avg_forecast,'Weighted Moving Average')
+
 
 #4.Simple Exponential Smoothing (Simple Average+Wighted Moving Average) An equivalent ARIMA(0,1,1) model
 #The forecast at time t+1 is equal to a weighted average between the most recent observation yt and the most recent forecast ŷ t|t−1
@@ -135,12 +168,14 @@ y_hat_holt_winter['Holt_Winter'] = holt_winter_model_fit.forecast(len(test_data)
 plotGraph(y_hat_holt_winter,'Holt_Winter','Holt Winter Trend')
 calculateError(test_data.totalRequests,y_hat_holt_winter.Holt_Winter,'Holt Winter')
 
-#Predict Paid Impressions
-holt_winter_model = ExponentialSmoothing(np.asarray(train_data['paidImpressions']) ,seasonal_periods=7 ,trend='add', seasonal='add')
-holt_winter_model_fit=holt_winter_model.fit()
-test_data['Predicted_Paid_Impressions']=holt_winter_model_fit.forecast(len(test_data))
-calculateError(test_data.paidImpressions,test_data.Predicted_Paid_Impressions,'Holt Winter')
-
+# =============================================================================
+# #Predict Paid Impressions
+# holt_winter_model = ExponentialSmoothing(np.asarray(train_data['paidImpressions']) ,seasonal_periods=7 ,trend='add', seasonal='add')
+# holt_winter_model_fit=holt_winter_model.fit()
+# test_data['Predicted_Paid_Impressions']=holt_winter_model_fit.forecast(len(test_data))
+# calculateError(test_data.paidImpressions,test_data.Predicted_Paid_Impressions,'Holt Winter')
+# 
+# =============================================================================
 #Plot Model Evaluation Metrics
 evaluation_metrics.plot(y=['MAPE'],kind="bar",color='orange')
 evaluation_metrics.plot(y=['RMSE'],kind="bar")
