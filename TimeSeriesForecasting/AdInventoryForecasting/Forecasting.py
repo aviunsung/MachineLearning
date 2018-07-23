@@ -23,14 +23,14 @@ def visualize_dataset():
     #Total Requests
     plt.figure(figsize=(16,8))
     plt.plot(train_data.date, train_data['totalRequests'], label='Train_totalRequests')
-    #plt.plot(test_data.date,test_data['totalRequests'], label='Test_totalRequests')
+    plt.plot(test_data.date,test_data['totalRequests'], label='Test_totalRequests')
     plt.legend(loc='best')
     plt.title('Total Ad Requests Data')
     
     #Paid Impressions
     plt.figure(figsize=(16,8))
     plt.plot(train_data.date, train_data['paidImpressions'], label='Train_paidImpressions')
-    #plt.plot(test_data.date,test_data['paidImpressions'], label='Test_paidImpressions')
+    plt.plot(test_data.date,test_data['paidImpressions'], label='Test_paidImpressions')
     plt.legend(loc='best')
     plt.title('Total Paid Impressions Data')
 
@@ -54,12 +54,11 @@ def check_seasonality_trend(train_series):
     from statsmodels.tsa.stattools import adfuller
     
     #Check trends & seasonality
-    seasonal_decompose(x=train_series,freq=10).plot()
+    seasonal_decompose(x=train_series,freq=30).plot()
     
     #Check for Stationarity
     #test_stationarity(train_series)
     print(adfuller(train_data.totalRequests))
-    
     
 check_seasonality_trend(train_data.totalRequests)
 
@@ -135,7 +134,7 @@ def moving_average_method(train_series,test_series):
     avg_series= []
     training_series=list(train_series)
     for i in range(len(test_series)):
-        mean_value=pd.Series(training_series).rolling(7).mean().iloc[-1]
+        mean_value=pd.Series(training_series).rolling(4).mean().iloc[-1]
         #print('mean='+str(mean_value))
         avg_series.append(mean_value)
         training_series.append(mean_value)
@@ -151,11 +150,11 @@ y_hat_mvng_avg=moving_average_method(train_data.totalRequests,test_data.totalReq
 def weighted_moving_average_method(train_series,test_series):
     y_hat_wmvng_avg = pd.DataFrame(test_series)
     avg_series= []
-    weights=np.random.dirichlet(np.ones(10),size=1)
+    weights=np.random.dirichlet(np.ones(4),size=1)
     weights=pd.Series(weights[0]).sort_values(ascending=False)
     training_series=list(train_series)
     for i in range(len(test_series)):
-        mean_value=np.average(np.asarray(training_series[len(training_series)-10:]),weights=weights)
+        mean_value=np.average(np.asarray(training_series[len(training_series)-4:]),weights=weights)
         #print('mean='+str(mean_value))
         avg_series.append(mean_value)
         training_series.append(mean_value)

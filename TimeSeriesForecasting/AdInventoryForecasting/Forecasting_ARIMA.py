@@ -97,6 +97,16 @@ def plotGraph(test_series,predicted_dataframe,predicted_column_name,method_label
     plt.title(method_label)
     plt.show()
 
+def plot_acf_pacf(data,lag):
+    from statsmodels.graphics.tsaplots import plot_acf,plot_pacf
+    plot_acf(data, lags=lag)
+    plot_pacf(data, lags=lag)
+    plt.show()
+    
+    from pandas.tools.plotting import autocorrelation_plot
+    autocorrelation_plot(train_data.totalRequests)
+    plt.show()
+    
 #AR -Auto Regressive Time series
 #x(t) = alpha *  x(t – 1) + error (t)
 
@@ -109,48 +119,45 @@ from statsmodels.tsa.stattools import adfuller
 #A. Differencing
 train_data_diff=pd.DataFrame()
 train_data_diff['date']=train_data.date
-train_data_diff['totalRequests']=train_data.totalRequests-train_data.totalRequests.shift()
-train_data_diff['paidImpressions']=train_data.paidImpressions-train_data.paidImpressions.shift()
+train_data_diff['totalRequests']=train_data.totalRequests-train_data.totalRequests.shift(7)
+train_data_diff['paidImpressions']=train_data.paidImpressions-train_data.paidImpressions.shift(1)
 train_data_diff.dropna(inplace=True)
 test_stationarity(train_data_diff.totalRequests)
+plot_acf_pacf(train_data.totalRequests,30)
+plot_acf_pacf(train_data_diff.totalRequests,30)
 
-#B.Decomposing
-from statsmodels.tsa.seasonal import seasonal_decompose
-decomposition = seasonal_decompose(np.asarray(train_data.totalRequests),freq=10)
-decomposition.plot()
-plt.show()
-train_data_decompose=pd.DataFrame()
-train_data_decompose['date']=train_data.date
-train_data_decompose['totalRequests'] = decomposition.resid
-train_data_decompose.dropna(inplace=True)
-
-#Check for Autocorrelation 
-#(correlation is calculated between the variable and itself at previous time steps)
+# =============================================================================
+# #B.Decomposing
+# from statsmodels.tsa.seasonal import seasonal_decompose
+# decomposition = seasonal_decompose(np.asarray(train_data.totalRequests),freq=10)
+# decomposition.plot()
+# plt.show()
+# train_data_decompose=pd.DataFrame()
+# train_data_decompose['date']=train_data.date
+# train_data_decompose['totalRequests'] = decomposition.resid
+# train_data_decompose.dropna(inplace=True)
+# check_seasonality_trend(train_data_decompose)
+# 
+# =============================================================================
+ #Check for Autocorrelation 
+ #(correlation is calculated between the variable and itself at previous time steps)
 from pandas.tools.plotting import lag_plot
 lag_plot(train_data.totalRequests)
 plt.show()
+ 
 
-from pandas.tools.plotting import autocorrelation_plot
-autocorrelation_plot(train_data.totalRequests)
-plt.show()
-
-from statsmodels.graphics.tsaplots import plot_acf,plot_pacf
-plot_acf(train_data.totalRequests, lags=31)
-plot_pacf(train_data.totalRequests, lags=31)
-plt.show()
-
-#ACF and PACF plots:
+ #ACF and PACF plots:
 from statsmodels.tsa.stattools import acf, pacf
 lag_acf = acf(train_data.totalRequests, nlags=20)
 lag_pacf = pacf(train_data.totalRequests, nlags=20, method='ols')
-
+ 
 plt.subplot(121) 
 plt.plot(lag_acf)
 plt.axhline(y=0,linestyle='--',color='gray')
 plt.axhline(y=-1.96/np.sqrt(len(train_data.totalRequests)),linestyle='--',color='gray')
 plt.axhline(y=1.96/np.sqrt(len(train_data.totalRequests)),linestyle='--',color='gray')
 plt.title('Autocorrelation Function')
-
+ 
 plt.subplot(122)
 plt.plot(lag_pacf)
 plt.axhline(y=0,linestyle='--',color='gray')
@@ -200,23 +207,21 @@ def ARIMA_method(train_series,test_series):
     y_hat_ARIMA = pd.DataFrame(test_series)
     model_ARIMA = ARIMA(train_series, order=(3, 1, 4))  
     model_ARIMA_fit = model_ARIMA.fit(disp=-1)
-    #print(model_AR_fit.summary())
+    print(model_ARIMA.summary())
     y_hat_ARIMA['Predicted']=model_ARIMA_fit.forecast(steps=len(test_series))[0]
     plotGraph(test_series,y_hat_ARIMA,'Predicted','ARIMA')
     calculateError(test_series,y_hat_ARIMA.Predicted,'ARIMA')
     return y_hat_ARIMA
 
-y_hat_ARIMA=ARIMA_method(train_data.totalRequests,test_data.totalRequests)
-
-
 #4. SARIMA(p,d,q)(P,D,Q)s (Seasonal Autoregressive Integrated Moving average)
 #ARIMA models aim to describe the correlations in the data with each other
 
+plot_acf_pacf(train_data.totalRequests,31)
 def SARIMA_method(train_series,test_series):
     from statsmodels.tsa.statespace.sarimax import SARIMAX
     y_hat_SARIMA = pd.DataFrame()
-    model_SARIMA = SARIMAX(train_series, order=(2, 1, 4),seasonal_order=(2,1,4,7)).fit(optimize=True)  
-    #print(model_AR_fit.summary())
+    model_SARIMA = SARIMAX(train_series, order=(1, 1, 4),seasonal_order=(2,1,4,4)).fit(optimize=True)  
+    print(model_SARIMA.summary())
     y_hat_SARIMA['Predicted']=model_SARIMA.predict(start=len(train_series), end=len(train_series)+len(test_series)-1, dynamic=True)
     plotGraph(test_series,y_hat_SARIMA,'Predicted','SARIMA')
     calculateError(test_series,y_hat_SARIMA.Predicted,'SARIMA')
