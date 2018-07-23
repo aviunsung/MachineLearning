@@ -13,6 +13,53 @@ from math import sqrt
 import warnings
 warnings.filterwarnings("ignore")
 
+train_data=pd.read_excel("/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_train_dataset.xlsx")
+test_data = pd.read_excel('/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_test_dataset.xlsx')
+
+#Visualze Dataset
+def visualize_dataset():
+    #Total Requests
+    plt.figure(figsize=(16,8))
+    plt.plot(train_data.date, train_data['totalRequests'], label='Train_totalRequests')
+    #plt.plot(test_data.date,test_data['totalRequests'], label='Test_totalRequests')
+    plt.legend(loc='best')
+    plt.title('Total Ad Requests Data')
+    
+    #Paid Impressions
+    plt.figure(figsize=(16,8))
+    plt.plot(train_data.date, train_data['paidImpressions'], label='Train_paidImpressions')
+    #plt.plot(test_data.date,test_data['paidImpressions'], label='Test_paidImpressions')
+    plt.legend(loc='best')
+    plt.title('Total Paid Impressions Data')
+
+visualize_dataset()
+
+def test_stationarity(timeseries_data):
+    #Determing rolling statistics
+    rolmean = pd.rolling_mean(timeseries_data, window=12)
+    rolstd = pd.rolling_std(timeseries_data, window=12)
+
+    #Plot rolling statistics:
+    plt.plot(timeseries_data, color='blue',label='Original')
+    plt.plot(rolmean, color='red', label='Rolling Mean')
+    plt.plot(rolstd, color='black', label = 'Rolling Std')
+    plt.legend(loc='best')
+    plt.title('Rolling Mean & Standard Deviation')
+    plt.show(block=False)
+    
+def check_seasonality_trend(train_series):
+    from statsmodels.tsa.seasonal import seasonal_decompose
+    from statsmodels.tsa.stattools import adfuller
+    #Check trends & seasonality
+    seasonal_decompose(x=train_series,freq=10).plot()
+    #Check for Stationarity
+    test_stationarity(train_series)
+    print(adfuller(train_data.totalRequests))
+    
+#Check trends & seasonality
+check_seasonality_trend(train_data.totalRequests)
+
+#Create Evaluatiom Matrix
 evaluation_metrics=pd.DataFrame()
 
 #Mean Absolute Percentage Error (MAPE)
@@ -41,60 +88,20 @@ def calculateError(input_data,predicted_data,model_name):
     evaluation_metrics.set_value(model_name,'Accuracy',accuracy)
 
 
-def plotGraph(predicted_dataframe,column_name,method_label):
+def plotGraph(test_series,predicted_dataframe,predicted_column_name,method_label):
     plt.figure(figsize=(16,8))
-    #plt.plot(train_data.index, train_data['totalRequests'], label='Train')
-    plt.plot(test_data.index,test_data['totalRequests'], label='Test')
-    plt.plot(predicted_dataframe.index,predicted_dataframe[column_name], label=method_label)
+    #plt.plot(train_data.date, train_data['totalRequests'], label='Train')
+    plt.plot(test_data.date,test_series, label='Test')
+    plt.plot(test_data.date,predicted_dataframe[predicted_column_name], label=method_label)
     plt.legend(loc='best')
     plt.title(method_label)
     plt.show()
-
-def test_stationarity(timeseries_data):
-    #Determing rolling statistics
-    rolmean = pd.rolling_mean(timeseries_data, window=14)
-    rolstd = pd.rolling_std(timeseries_data, window=14)
-
-    #Plot rolling statistics:
-    plt.figure(figsize=(16,8))
-    plt.plot(timeseries_data, color='blue',label='Original')
-    plt.plot(rolmean, color='red', label='Rolling Mean')
-    plt.plot(rolstd, color='black', label = 'Rolling Std')
-    plt.legend(loc='best')
-    plt.title('Rolling Mean & Standard Deviation')
-    plt.show(block=False)
-    
-train_data=pd.read_excel("/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_train_dataset_2016-18.xlsx")
-test_data = pd.read_excel('/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_test_dataset.xlsx')
-
-#Visualze Dataset
-#Total Requests
-plt.figure(figsize=(12,8))
-plt.plot(train_data.date, train_data['totalRequests'], label='Train_totalRequests')
-plt.plot(test_data.date,test_data['totalRequests'], label='Test_totalRequests')
-plt.legend(loc='best')
-plt.title('Total Ad Requests Data')
-
-#Paid Impressions
-plt.figure(figsize=(16,8))
-plt.plot(train_data.date, train_data['paidImpressions'], label='Train_paidImpressions')
-plt.plot(test_data.date,test_data['paidImpressions'], label='Test_paidImpressions')
-plt.legend(loc='best')
-plt.title('Total Paid Impressions Data')
 
 #AR -Auto Regressive Time series
 #x(t) = alpha *  x(t – 1) + error (t)
 
 from statsmodels.tsa.seasonal import seasonal_decompose
 from statsmodels.tsa.stattools import adfuller
-
-#Check trends & seasonality
-seasonal_decompose(x=train_data['totalRequests'],freq=10).plot()
-
-#Check for Stationarity
-test_stationarity(test_data.totalRequests)
-result = adfuller(train_data.totalRequests)
-print(result)
 
 #####Data Preprocessing##################
 ####Eliminating Trend & Seasonality###########
@@ -157,73 +164,70 @@ plt.show()
 #x(t) = alpha *  x(t – 1) + error (t)
 #An autoregression model is a linear regression model that uses lagged variables as input variables
 #It says current series values depend on its previous values with some lag (or several lags),which is referred to as p
-from statsmodels.tsa.ar_model import AR
 from statsmodels.tsa.arima_model import ARIMA
-y_hat_AR = pd.DataFrame()
-
-# =============================================================================
-# #Use AR
-# model = AR(train_data.totalRequests)
-# model_fit = model.fit()
-# #p=no of lag variables used (order of AR)
-# #alpha=coefficients used with lag variables
-# print('Lag: %s' % model_fit.k_ar)
-# print('Coefficients: %s' % model_fit.params)
-# # make predictions
-# y_hat_AR['predictions'] = model_fit.predict(start=len(train_data), end=len(train_data)+len(test_data)-1, dynamic=False)
-# plotGraph(y_hat_AR,'predictions','Autoregression')
-# calculateError(test_data.totalRequests,y_hat_AR.predictions,'Autoregression')
-# 
-# =============================================================================
-#Use ARIMA
-model_AR = ARIMA(train_data.totalRequests, order=(1, 1, 0))  
-model_AR_fit = model_AR.fit(disp=0) 
-print(model_AR_fit.summary())
-y_hat_AR['predictions']=model_AR_fit.forecast(steps=len(test_data))[0]
-#y_hat_AR['predictions'] = model_AR.predict(start=len(train_data), end=len(train_data)+len(test_data)-1, dynamic=False)
-plotGraph(y_hat_AR,'predictions','Autoregression(AR)')
-calculateError(test_data.totalRequests,y_hat_AR.predictions,'Autoregression(AR)')
-
+def auto_regression_AR(train_series,test_series):
+    y_hat_AR = pd.DataFrame(test_series)
+    model_AR = ARIMA(train_series, order=(1, 1, 0))  
+    model_AR_fit = model_AR.fit(disp=0) 
+    #print(model_AR_fit.summary())
+    y_hat_AR['Predicted']=model_AR_fit.forecast(steps=len(test_series))[0]
+    plotGraph(test_series,y_hat_AR,'Predicted','Autoregression(AR)')
+    calculateError(test_series,y_hat_AR.Predicted,'Autoregression(AR)')
+    return y_hat_AR
+    
+y_hat_AR=auto_regression_AR(train_data.totalRequests,test_data.totalRequests)
 
 #2.Moving Average (MA(q))
 #x(t) = beta *  error(t-1) + error (t)
 #It says that current error depends on the previous with some lag, which is referred to as q
-y_hat_MA = pd.DataFrame()
-model_MA = ARIMA(train_data.totalRequests, order=(0, 1, 7))  
-model_MA_fit = model_MA.fit(disp=-1)  
-print(model_MA_fit.summary())
-y_hat_MA['predictions']=model_MA_fit.forecast(steps=len(test_data))[0]
-plotGraph(y_hat_MA,'predictions','Moving Average(MA)')
-calculateError(test_data.totalRequests,y_hat_MA.predictions,'Moving Average(MA)')
 
-#Predict Paid Impressions
-model_ARIMA = ARIMA(train_data.paidImpressions, order=(0, 1, 1))  
-model_ARIMA_fit = model_ARIMA.fit(disp=-1)
-test_data['Predicted_Paid_Impressions']=model_ARIMA_fit.forecast(steps=len(test_data))[0]
-calculateError(test_data.paidImpressions,test_data.Predicted_Paid_Impressions,'ARIMA')
+def moving_average_MA(train_series,test_series):
+    y_hat_MA = pd.DataFrame(test_series)
+    model_MA = ARIMA(train_series, order=(0, 1, 7))  
+    model_MA_fit = model_MA.fit(disp=-1) 
+    #print(model_AR_fit.summary())
+    y_hat_MA['Predicted']=model_MA_fit.forecast(steps=len(test_series))[0]
+    plotGraph(test_series,y_hat_MA,'Predicted','Moving Average(MA)')
+    calculateError(test_series,y_hat_MA.Predicted,'Moving Average(MA)')
+    return y_hat_MA
+    
+y_hat_MA=moving_average_MA(train_data.totalRequests,test_data.totalRequests)
 
 #3.Autoregressive Integrated Moving average (ARIMA(p,d,q))
 #d=the number of past time points to subtract from the current value(differencing)
-y_hat_ARIMA = pd.DataFrame()
-model_ARIMA = ARIMA(train_data.totalRequests, order=(1, 1, 7))  
-model_ARIMA_fit = model_ARIMA.fit(disp=-1)
-print(model_ARIMA_fit.summary())
-y_hat_ARIMA['predictions']=model_ARIMA_fit.forecast(steps=len(test_data))[0]
-test_data['Predicted_Total_Requests']=y_hat_ARIMA['predictions']
-plotGraph(y_hat_ARIMA,'predictions','ARIMA')
-calculateError(test_data.totalRequests,y_hat_ARIMA.predictions,'ARIMA')
 
-#7. SARIMA(p,d,q)(P,D,Q)s (Seasonal Autoregressive Integrated Moving average)
+def ARIMA_method(train_series,test_series):
+    y_hat_ARIMA = pd.DataFrame(test_series)
+    model_ARIMA = ARIMA(train_series, order=(3, 1, 4))  
+    model_ARIMA_fit = model_ARIMA.fit(disp=-1)
+    #print(model_AR_fit.summary())
+    y_hat_ARIMA['Predicted']=model_ARIMA_fit.forecast(steps=len(test_series))[0]
+    plotGraph(test_series,y_hat_ARIMA,'Predicted','ARIMA')
+    calculateError(test_series,y_hat_ARIMA.Predicted,'ARIMA')
+    return y_hat_ARIMA
+
+y_hat_ARIMA=ARIMA_method(train_data.totalRequests,test_data.totalRequests)
+
+
+#4. SARIMA(p,d,q)(P,D,Q)s (Seasonal Autoregressive Integrated Moving average)
 #ARIMA models aim to describe the correlations in the data with each other
-from statsmodels.tsa.statespace.sarimax import SARIMAX
-y_hat_sarima = test_data.copy()
-sarima_model = SARIMAX(train_data.totalRequests, order=(4, 1, 1),seasonal_order=(0,1,1,7)).fit(optimize=True)
-y_hat_sarima_result=pd.DataFrame()
-y_hat_sarima_result['SARIMA'] = sarima_model.predict(start=len(train_data), end=len(train_data)+len(test_data)-1, dynamic=True)
-plotGraph(y_hat_sarima_result,'SARIMA','Seasonal Autoregressive Integrated Moving average')
-calculateError(test_data.totalRequests,y_hat_sarima_result.SARIMA,'SARIMA')
+
+def SARIMA_method(train_series,test_series):
+    from statsmodels.tsa.statespace.sarimax import SARIMAX
+    y_hat_SARIMA = pd.DataFrame()
+    model_SARIMA = SARIMAX(train_series, order=(2, 1, 4),seasonal_order=(2,1,4,7)).fit(optimize=True)  
+    #print(model_AR_fit.summary())
+    y_hat_SARIMA['Predicted']=model_SARIMA.predict(start=len(train_series), end=len(train_series)+len(test_series)-1, dynamic=True)
+    plotGraph(test_series,y_hat_SARIMA,'Predicted','SARIMA')
+    calculateError(test_series,y_hat_SARIMA.Predicted,'SARIMA')
+    return y_hat_SARIMA
+
+y_hat_SARIMA=SARIMA_method(train_data.totalRequests,test_data.totalRequests)
+
 
 #Plot Model Evaluation Metrics
 evaluation_metrics.plot(y=['MAPE'],kind="bar",color='orange')
 evaluation_metrics.plot(y=['RMSE'],kind="bar")
+evaluation_metrics.plot(y=['Accuracy'],kind="bar",color='green')
+
 

@@ -15,7 +15,7 @@ from math import sqrt
 import warnings
 warnings.filterwarnings("ignore")
 
-train_data=pd.read_excel("/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_train_dataset_2016-18.xlsx")
+train_data=pd.read_excel("/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_train_dataset.xlsx")
 test_data = pd.read_excel('/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_test_dataset.xlsx')
 
 #Visualze Dataset
@@ -199,7 +199,7 @@ y_hat_holt_linear=holt_linear_trend_method(train_data.totalRequests,test_data.to
 #A method that takes into account both trend and seasonality to forecast
 def holt_winters_method(train_series,test_series):
     y_hat_holt_winter = pd.DataFrame(test_series)
-    holt_winter_model = ExponentialSmoothing(np.asarray(train_series) ,seasonal_periods=15 ,trend='add', seasonal='add')
+    holt_winter_model = ExponentialSmoothing(np.asarray(train_series) ,seasonal_periods=7 ,trend='add', seasonal='add')
     holt_winter_model_fit=holt_winter_model.fit()
     y_hat_holt_winter['Predicted'] = holt_winter_model_fit.forecast(len(test_series))
     plotGraph(test_series,y_hat_holt_winter,'Predicted','Holt Winter Trend')
@@ -207,6 +207,7 @@ def holt_winters_method(train_series,test_series):
     return y_hat_holt_winter
 
 y_hat_holt_winter=holt_winters_method(train_data.totalRequests,test_data.totalRequests)
+#y_hat_holt_winter=holt_winters_method(train_data.paidImpressions,test_data.paidImpressions)
 
 #Plot Model Evaluation Metrics
 evaluation_metrics.plot(y=['MAPE'],kind="bar",color='orange')
