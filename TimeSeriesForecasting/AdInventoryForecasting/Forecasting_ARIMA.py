@@ -38,8 +38,8 @@ def test_stationarity(timeseries_data):
     #Determing rolling statistics
     rolmean = pd.rolling_mean(timeseries_data, window=12)
     rolstd = pd.rolling_std(timeseries_data, window=12)
-
     #Plot rolling statistics:
+    plt.figure(figsize=(12,4))
     plt.plot(timeseries_data, color='blue',label='Original')
     plt.plot(rolmean, color='red', label='Rolling Mean')
     plt.plot(rolstd, color='black', label = 'Rolling Std')
@@ -207,16 +207,17 @@ def ARIMA_method(train_series,test_series):
     y_hat_ARIMA = pd.DataFrame(test_series)
     model_ARIMA = ARIMA(train_series, order=(3, 1, 4))  
     model_ARIMA_fit = model_ARIMA.fit(disp=-1)
-    print(model_ARIMA.summary())
+    print(model_ARIMA_fit.summary())
     y_hat_ARIMA['Predicted']=model_ARIMA_fit.forecast(steps=len(test_series))[0]
     plotGraph(test_series,y_hat_ARIMA,'Predicted','ARIMA')
     calculateError(test_series,y_hat_ARIMA.Predicted,'ARIMA')
     return y_hat_ARIMA
 
+y_hat_ARIMA=ARIMA_method(train_data.totalRequests,test_data.totalRequests)
+
 #4. SARIMA(p,d,q)(P,D,Q)s (Seasonal Autoregressive Integrated Moving average)
 #ARIMA models aim to describe the correlations in the data with each other
 
-plot_acf_pacf(train_data.totalRequests,31)
 def SARIMA_method(train_series,test_series):
     from statsmodels.tsa.statespace.sarimax import SARIMAX
     y_hat_SARIMA = pd.DataFrame()

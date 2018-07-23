@@ -201,8 +201,8 @@ def holt_winters_method(train_series,test_series):
     holt_winter_model = ExponentialSmoothing(np.asarray(train_series) ,seasonal_periods=7 ,trend='add', seasonal='add')
     holt_winter_model_fit=holt_winter_model.fit()
     y_hat_holt_winter['Predicted'] = holt_winter_model_fit.forecast(len(test_series))
-    plotGraph(test_series,y_hat_holt_winter,'Predicted','Holt Winter Trend')
-    calculateError(test_series,y_hat_holt_winter.Predicted,'Holt Winter')
+    plotGraph(test_series,y_hat_holt_winter,'Predicted','Holt Winters Trend')
+    calculateError(test_series,y_hat_holt_winter.Predicted,'Holt Winters')
     return y_hat_holt_winter
 
 y_hat_holt_winter=holt_winters_method(train_data.totalRequests,test_data.totalRequests)
