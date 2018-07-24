@@ -16,6 +16,12 @@ warnings.filterwarnings("ignore")
 train_data=pd.read_excel("/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_train_dataset.xlsx")
 test_data = pd.read_excel('/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_test_dataset.xlsx')
 
+train_series=train_data.totalRequests
+test_series=test_data.totalRequests
+
+#train_series=train_data.paidImpressions
+#test_series=test_data.paidImpressions
+
 #Visualze Dataset
 def visualize_dataset():
     #Total Requests
@@ -110,9 +116,6 @@ def plot_acf_pacf(data,lag):
 #AR -Auto Regressive Time series
 #x(t) = alpha *  x(t – 1) + error (t)
 
-from statsmodels.tsa.seasonal import seasonal_decompose
-from statsmodels.tsa.stattools import adfuller
-
 #####Data Preprocessing##################
 ####Eliminating Trend & Seasonality###########
 
@@ -182,7 +185,7 @@ def auto_regression_AR(train_series,test_series):
     calculateError(test_series,y_hat_AR.Predicted,'Autoregression(AR)')
     return y_hat_AR
     
-y_hat_AR=auto_regression_AR(train_data.totalRequests,test_data.totalRequests)
+y_hat_AR=auto_regression_AR(train_series,test_series)
 
 #2.Moving Average (MA(q))
 #x(t) = beta *  error(t-1) + error (t)
@@ -198,7 +201,7 @@ def moving_average_MA(train_series,test_series):
     calculateError(test_series,y_hat_MA.Predicted,'Moving Average(MA)')
     return y_hat_MA
     
-y_hat_MA=moving_average_MA(train_data.totalRequests,test_data.totalRequests)
+y_hat_MA=moving_average_MA(train_series,test_series)
 
 #3.Autoregressive Integrated Moving average (ARIMA(p,d,q))
 #d=the number of past time points to subtract from the current value(differencing)
@@ -213,7 +216,7 @@ def ARIMA_method(train_series,test_series):
     calculateError(test_series,y_hat_ARIMA.Predicted,'ARIMA')
     return y_hat_ARIMA
 
-y_hat_ARIMA=ARIMA_method(train_data.totalRequests,test_data.totalRequests)
+y_hat_ARIMA=ARIMA_method(train_series,test_series)
 
 #4. SARIMA(p,d,q)(P,D,Q)s (Seasonal Autoregressive Integrated Moving average)
 #ARIMA models aim to describe the correlations in the data with each other
@@ -228,7 +231,7 @@ def SARIMA_method(train_series,test_series):
     calculateError(test_series,y_hat_SARIMA.Predicted,'SARIMA')
     return y_hat_SARIMA
 
-y_hat_SARIMA=SARIMA_method(train_data.totalRequests,test_data.totalRequests)
+y_hat_SARIMA=SARIMA_method(train_series,test_series)
 
 
 #Plot Model Evaluation Metrics

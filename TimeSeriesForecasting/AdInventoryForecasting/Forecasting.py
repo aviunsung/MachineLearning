@@ -18,6 +18,12 @@ warnings.filterwarnings("ignore")
 train_data=pd.read_excel("/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_train_dataset.xlsx")
 test_data = pd.read_excel('/home/avinash/Learning/MachineLearning/TimeSeriesForecasting/AdInventoryForecasting/Dataset/forecasting_test_dataset.xlsx')
 
+train_series=train_data.totalRequests
+test_series=test_data.totalRequests
+
+#train_series=train_data.paidImpressions
+#test_series=test_data.paidImpressions
+
 #Visualze Dataset
 def visualize_dataset():
     #Total Requests
@@ -108,7 +114,7 @@ def naive_method(train_series,test_series):
     calculateError(test_series,y_hat.Predicted,'Naive')
     return y_hat
 
-y_hat=naive_method(train_data.totalRequests,test_data.totalRequests)
+y_hat=naive_method(train_series,test_series)
 
 #2. Simple Average
 def simple_average_method(train_series,test_series):
@@ -126,7 +132,7 @@ def simple_average_method(train_series,test_series):
     calculateError(test_series,y_hat_avg.Predicted,'Simple Average')
     return y_hat_avg
 
-y_hat_avg=simple_average_method(train_data.totalRequests,test_data.totalRequests)
+y_hat_avg=simple_average_method(train_series,test_series)
 
 #3. Moving Average Window/Sliding technique
 def moving_average_method(train_series,test_series):
@@ -144,9 +150,9 @@ def moving_average_method(train_series,test_series):
     calculateError(test_series,y_hat_mvng_avg.Predicted,'Moving Average')
     return y_hat_mvng_avg
 
-y_hat_mvng_avg=moving_average_method(train_data.totalRequests,test_data.totalRequests)
+y_hat_mvng_avg=moving_average_method(train_series,test_series)
 
-#3.1 Weighted Moving Average technique
+#4 Weighted Moving Average technique
 def weighted_moving_average_method(train_series,test_series):
     y_hat_wmvng_avg = pd.DataFrame(test_series)
     avg_series= []
@@ -163,9 +169,9 @@ def weighted_moving_average_method(train_series,test_series):
     calculateError(test_series,y_hat_wmvng_avg.Predicted,'Weighted Moving Average')
     return y_hat_wmvng_avg
  
-y_hat_wmvng_avg=weighted_moving_average_method(train_data.totalRequests,test_data.totalRequests)
+y_hat_wmvng_avg=weighted_moving_average_method(train_series,test_series)
 
-#4.Simple Exponential Smoothing (Simple Average+Wighted Moving Average) An equivalent ARIMA(0,1,1) model
+#5.Simple Exponential Smoothing (Simple Average+Wighted Moving Average) An equivalent ARIMA(0,1,1) model
 #The forecast at time t+1 is equal to a weighted average between the most recent observation yt and the most recent forecast ŷ t|t−1
 from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
 
@@ -179,9 +185,9 @@ def simple_exponential_smoothing_method(train_series,test_series):
     calculateError(test_series,y_hat_exp_avg.Predicted,'Simple Exponential Smoothing')
     return y_hat_exp_avg
 
-y_hat_exp_avg=simple_exponential_smoothing_method(train_data.totalRequests,test_data.totalRequests)
+y_hat_exp_avg=simple_exponential_smoothing_method(train_series,test_series)
 
-#5.Holt’s Linear Trend method or Double exponential smoothing 
+#6.Holt’s Linear Trend method or Double exponential smoothing 
 #(A method that takes into account the trend of the dataset) 
 #An equivalent ARIMA(0,2,2) model
 def holt_linear_trend_method(train_series,test_series):
@@ -192,9 +198,9 @@ def holt_linear_trend_method(train_series,test_series):
     calculateError(test_series,y_hat_holt_linear.Predicted,'Holt Linear')
     return y_hat_holt_linear
 
-y_hat_holt_linear=holt_linear_trend_method(train_data.totalRequests,test_data.totalRequests)
+y_hat_holt_linear=holt_linear_trend_method(train_series,test_series)
 
-#6. Holt-Winters Method or Triple exponential smoothing
+#7. Holt-Winters Method or Triple exponential smoothing
 #A method that takes into account both trend and seasonality to forecast
 def holt_winters_method(train_series,test_series):
     y_hat_holt_winter = pd.DataFrame(test_series)
@@ -205,8 +211,7 @@ def holt_winters_method(train_series,test_series):
     calculateError(test_series,y_hat_holt_winter.Predicted,'Holt Winters')
     return y_hat_holt_winter
 
-y_hat_holt_winter=holt_winters_method(train_data.totalRequests,test_data.totalRequests)
-#y_hat_holt_winter=holt_winters_method(train_data.paidImpressions,test_data.paidImpressions)
+y_hat_holt_winter=holt_winters_method(train_series,test_series)
 
 #Plot Model Evaluation Metrics
 evaluation_metrics.plot(y=['MAPE'],kind="bar",color='orange')
