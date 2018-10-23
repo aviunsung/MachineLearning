@@ -27,7 +27,6 @@ X_test=test_dataset.iloc[:,0:7]
 y_train=train_dataset['manual_review']
 y_test=test_dataset['manual_review']
 
-plt.scatter(x=X_train,y=y_train)
 ###....Data Preprocessing....
 def data_preprocessing(X_train,y_train,X_test,y_test):
     #Handle Missing Data
@@ -73,7 +72,7 @@ def build_and_test_model(model,model_name,X_train,y_train,X_test,y_test,model_ac
     return model_accuracy
 
 # Create SVM classification object 
-model = svm.SVC(kernel='linear', C=10,cache_size=4500)
+model = svm.SVC(kernel='linear', C=10,cache_size=5120)
 model_accuracy=build_and_test_model(model,'SVM_Linear',X_train,y_train,X_test,y_test,model_accuracy)
 
 #model = svm.SVC(kernel='poly', degree=8,cache_size=4500)
