@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Oct 22 22:09:14 2018
+Created on Mon Oct 15 22:09:14 2018
 
 @author: Avinash Pandey
 """
@@ -14,9 +14,6 @@ train_dataset=pd.read_excel("/home/avinash/MachineLearning/AdQuality/Dataset/adq
 test_dataset = pd.read_excel('/home/avinash/MachineLearning/AdQuality/Dataset/adquality_test_dataset.xlsx')
 
 #exclude ucrid by slicicng
-#train_dataset=train_data.iloc[:,1:9]
-#test_dataset=test_data.iloc[:,1:9]
-
 train_dataset.drop(['ucrid'], axis=1,inplace=True)
 test_dataset.drop(['ucrid'], axis=1,inplace=True)
 
@@ -48,13 +45,14 @@ def data_preprocessing(X_train,y_train,X_test,y_test):
     return X_train,y_train,X_test,y_test
 
 X_train,y_train,X_test,y_test=data_preprocessing(X_train,y_train,X_test,y_test)   
-model_accuracy=pd.DataFrame()
 
-def build_and_test_model(model,model_name,X_train,y_train,X_test,y_test):
+model_accuracy=pd.DataFrame()
+y_predicted=pd.DataFrame()
+k=0
+
+def evaluate_model(model_name,y_pred):
+    print('Evaluating Model::',model_name)
     global model_accuracy
-    model.fit(X_train,y_train)
-    #model.score(X_train,y_train)
-    y_pred=model.predict(X_test)
     # Model Accuracy:
     accuracy=metrics.accuracy_score(y_test, y_pred)*100
     model_accuracy.set_value(model_name,'Accuracy',accuracy)
@@ -70,10 +68,33 @@ def build_and_test_model(model,model_name,X_train,y_train,X_test,y_test):
     f1_score=metrics.f1_score(y_test, y_pred)
     model_accuracy.set_value(model_name,'f1_score',f1_score)
     print('f1_score::',f1_score)
+    roc_auc_score=metrics.roc_auc_score(y_test, y_pred)
+    model_accuracy.set_value(model_name,'roc_auc_score',roc_auc_score)
+    print('roc_auc_score::',roc_auc_score)
+    fpr, tpr, thresholds = metrics.roc_curve(y_test, y_pred,pos_label=1)
+    auc=metrics.auc(fpr, tpr)
+    model_accuracy.set_value(model_name,'auc',auc)
+    print('auc::',auc)
+    average_precision_score=metrics.average_precision_score(y_test, y_pred)
+    model_accuracy.set_value(model_name,'average_precision_score',average_precision_score)
+    print('average_precision_score::',average_precision_score)
+    
     print('Confusion Matrix::',metrics.confusion_matrix(y_test, y_pred,labels=[0, 1])) 
-    print('feature_importance::',model.feature_importances_)
+    #print('feature_importance::',model.feature_importances_)
     print(metrics.classification_report(y_test, y_pred)) 
     return model_accuracy
+
+def build_and_test_model(model,model_name,X_train,y_train,X_test,y_test):
+    print('Building and Testing Model::',model_name)
+    global y_predicted
+    global k
+    model.fit(X_train,y_train)
+    #model.score(X_train,y_train)
+    y_pred=model.predict(X_test)
+    y_predicted.insert(loc=k,column='y_'+model_name,value=y_pred)
+    k=k+1
+    return evaluate_model(model_name,y_pred)
+    
 
 #-----Support Vector Classifier---#
 # Create SVM classification object 
@@ -94,9 +115,56 @@ from sklearn import tree
 model = tree.DecisionTreeClassifier(criterion='entropy',max_depth=7,max_features=2)
 model_accuracy=build_and_test_model(model,'Decision Tree',X_train,y_train,X_test,y_test)
 
-#-----Random Forest--------#
+#-----Random Forest (Bagging)--------#
 from sklearn.ensemble import RandomForestClassifier
-model= RandomForestClassifier(n_estimators=2000,criterion='gini',max_depth=7,max_features=2,n_jobs=6)
+model= RandomForestClassifier(n_estimators=200,criterion='gini',max_depth=7,max_features=2,n_jobs=-1)
 model_accuracy=build_and_test_model(model,'Random Forest',X_train,y_train,X_test,y_test)
 
-#--HyperParameters Tuning--##
+
+#-----Gradient Boosting (GBM)--------#
+from sklearn.ensemble import GradientBoostingClassifier
+model = GradientBoostingClassifier(n_estimators=100)
+model_accuracy=build_and_test_model(model,'Gradient Boosting',X_train,y_train,X_test,y_test)
+
+
+#-----eXtreme Gradient Boosting (XGBoost)-----#
+from xgboost import XGBClassifier
+model = XGBClassifier(n_estimators=100,n_jobs=-1)
+model_accuracy=build_and_test_model(model,'XGBoost',X_train,y_train,X_test,y_test)
+
+#-----Naive Bayes Classifier -------#
+from sklearn.naive_bayes import GaussianNB
+model = GaussianNB()
+model_accuracy=build_and_test_model(model,'Naive Bayes',X_train,y_train,X_test,y_test)
+
+#--- Logistic Regression -------#
+from sklearn.linear_model import LogisticRegression
+model = LogisticRegression()
+model_accuracy=build_and_test_model(model,'Logistic Regression',X_train,y_train,X_test,y_test)
+
+#----Recursive Feature Elimination ___#
+from sklearn.feature_selection import RFE
+rfe = RFE(model)
+rfe = rfe.fit(X_train,y_train)
+print(rfe.support_)
+print(rfe.ranking_)
+
+X_train=pd.DataFrame(X_train)
+X_test=pd.DataFrame(X_test)
+cols=['dsp_id','geo_id','confiant']
+X_train_sliced=X_train.loc[:,[0,3,6]]
+X_test_sliced=X_test.loc[:,[0,3,6]]
+
+model_accuracy=build_and_test_model(model,'RFE Logistic Regression',X_train_sliced,y_train,X_test_sliced,y_test)
+
+#----K-Nearest Neighbour (KNN) ___#
+from sklearn.neighbors import KNeighborsClassifier
+model = KNeighborsClassifier(n_neighbors=3,n_jobs=-1)
+model_accuracy=build_and_test_model(model,'KNN',X_train,y_train,X_test,y_test)
+
+#------ Majority Vote of All Classifiers-----##
+y_predicted_majority=y_predicted.mode(axis=1)
+model_accuracy= evaluate_model("Majority Vote",y_predicted_majority)
+y_predicted.insert(loc=k,column='y_Majority Vote',value=y_predicted_majority)
+k=k+1
+y_predicted.insert(loc=k,column='y_test',value=y_test)
