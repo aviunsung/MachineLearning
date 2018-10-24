@@ -8,7 +8,6 @@ Created on Mon Oct 22 22:09:14 2018
 
 import pandas as pd
 from sklearn import svm
-import matplotlib.pyplot as plt
 from sklearn import metrics
 
 train_dataset=pd.read_excel("/home/avinash/MachineLearning/AdQuality/Dataset/adquality_train_dataset.xlsx")
@@ -49,38 +48,55 @@ def data_preprocessing(X_train,y_train,X_test,y_test):
     return X_train,y_train,X_test,y_test
 
 X_train,y_train,X_test,y_test=data_preprocessing(X_train,y_train,X_test,y_test)   
-model_accuracy=pd.DataFrame(columns=['Model','Precision','Recall','Accuracy','F1 Score'])
+model_accuracy=pd.DataFrame()
 
-def build_and_test_model(model,model_name,X_train,y_train,X_test,y_test,model_accuracy):
+def build_and_test_model(model,model_name,X_train,y_train,X_test,y_test):
+    global model_accuracy
     model.fit(X_train,y_train)
+    #model.score(X_train,y_train)
     y_pred=model.predict(X_test)
     # Model Accuracy:
     accuracy=metrics.accuracy_score(y_test, y_pred)*100
+    model_accuracy.set_value(model_name,'Accuracy',accuracy)
     print('accuracy::',accuracy)
     # Model Precision:
     precision=metrics.precision_score(y_test, y_pred)*100
+    model_accuracy.set_value(model_name,'Precision',precision)
     print('precision::',precision)
     # Model Recall:
     recall=metrics.recall_score(y_test, y_pred)*100
+    model_accuracy.set_value(model_name,'Recall',recall)
     print('recall::',recall)
     f1_score=metrics.f1_score(y_test, y_pred)
+    model_accuracy.set_value(model_name,'f1_score',f1_score)
     print('f1_score::',f1_score)
-     
-    model_accuracy.append(pd.Series([model_name,precision,recall,accuracy,f1_score],index=['Model','Precision','Recall','Accuracy','F1 Score']),ignore_index=True)
-    print('Confusion Matrix::',metrics.confusion_matrix(y_test, y_pred,labels=[0, 1]))  
-   # print(metrics.classification_report(y_test, y_pred)) 
+    print('Confusion Matrix::',metrics.confusion_matrix(y_test, y_pred,labels=[0, 1])) 
+    print('feature_importance::',model.feature_importances_)
+    print(metrics.classification_report(y_test, y_pred)) 
     return model_accuracy
 
+#-----Support Vector Classifier---#
 # Create SVM classification object 
-model = svm.SVC(kernel='linear', C=10,cache_size=5120)
-model_accuracy=build_and_test_model(model,'SVM_Linear',X_train,y_train,X_test,y_test,model_accuracy)
+model = svm.SVC(kernel='linear', C=1,cache_size=400)
+#model_accuracy=build_and_test_model(model,'SVM_Linear',X_train,y_train,X_test,y_test)
 
-#model = svm.SVC(kernel='poly', degree=8,cache_size=4500)
-#model_accuracy=build_and_test_model(model,'SVM_Poly',X_train,y_train,X_test,y_test,model_accuracy)
+#model = svm.SVC(kernel='poly', degree=8,cache_size=400)
+#model_accuracy=build_and_test_model(model,'SVM_Poly',X_train,y_train,X_test,y_test)
 #
 #model = svm.SVC(kernel='rbf')
-#model_accuracy=build_and_test_model(model,'SVM_Rbf',X_train,y_train,X_test,y_test,model_accuracy)
+#model_accuracy=build_and_test_model(model,'SVM_Rbf',X_train,y_train,X_test,y_test)
 #
 #model = svm.SVC(kernel='sigmoid')
-#model_accuracy=build_and_test_model(model,'SVM_Sigmoid',X_train,y_train,X_test,y_test,model_accuracy)
+#model_accuracy=build_and_test_model(model,'SVM_Sigmoid',X_train,y_train,X_test,y_test)
 
+#----Decision Tree-----#
+from sklearn import tree
+model = tree.DecisionTreeClassifier(criterion='entropy',max_depth=7,max_features=2)
+model_accuracy=build_and_test_model(model,'Decision Tree',X_train,y_train,X_test,y_test)
+
+#-----Random Forest--------#
+from sklearn.ensemble import RandomForestClassifier
+model= RandomForestClassifier(n_estimators=2000,criterion='gini',max_depth=7,max_features=2,n_jobs=6)
+model_accuracy=build_and_test_model(model,'Random Forest',X_train,y_train,X_test,y_test)
+
+#--HyperParameters Tuning--##
