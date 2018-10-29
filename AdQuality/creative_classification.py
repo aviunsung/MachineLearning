@@ -11,17 +11,21 @@ from sklearn import svm
 from sklearn import metrics
 
 train_dataset=pd.read_excel("/home/avinash/MachineLearning/AdQuality/Dataset/adquality_train_dataset.xlsx")
-test_dataset = pd.read_excel('/home/avinash/MachineLearning/AdQuality/Dataset/adquality_test_dataset.xlsx')
+test_dataset = pd.read_excel('/home/avinash/MachineLearning/AdQuality/Dataset/AdQuality_additional_test_data.xlsx')
 
-#exclude ucrid by slicicng
+#exclude ucrid
 train_dataset.drop(['ucrid'], axis=1,inplace=True)
 test_dataset.drop(['ucrid'], axis=1,inplace=True)
-
 
 X_train=train_dataset.iloc[:,0:7]
 X_test=test_dataset.iloc[:,0:7]
 y_train=train_dataset['manual_review']
 y_test=test_dataset['manual_review']
+
+def convertToLabels(dataframe):
+    dataframe=dataframe.replace(to_replace=[-102, -101,-1,-2,-3,-5,-6, 1, 2, 6, 7],value=0)
+    dataframe[dataframe != 0] = 1
+    return dataframe
 
 ###....Data Preprocessing....
 def data_preprocessing(X_train,y_train,X_test,y_test):
@@ -30,6 +34,18 @@ def data_preprocessing(X_train,y_train,X_test,y_test):
     X_train['confiant'].fillna(0, inplace=True)
     X_test['adsnoop'].fillna(0, inplace=True)
     X_test['confiant'].fillna(0, inplace=True)
+    
+    #Convert adsnoop,confiant and manual_review to 0 and 1
+    X_test['adsnoop']=convertToLabels(X_test['adsnoop'])
+    X_test['confiant']=convertToLabels(X_test['confiant'])
+    y_test=convertToLabels(y_test)
+    
+    #Drop adsnoop and confiant
+#    X_train.drop(['adsnoop'], axis=1,inplace=True)
+#    X_train.drop(['confiant'], axis=1,inplace=True)
+#    X_test.drop(['adsnoop'], axis=1,inplace=True)
+#    X_test.drop(['confiant'], axis=1,inplace=True)
+
     
     #Handle Categorical Data
     from sklearn.preprocessing import LabelEncoder
@@ -151,9 +167,12 @@ print(rfe.ranking_)
 
 X_train=pd.DataFrame(X_train)
 X_test=pd.DataFrame(X_test)
-cols=['dsp_id','geo_id','confiant']
-X_train_sliced=X_train.loc[:,[0,3,6]]
-X_test_sliced=X_test.loc[:,[0,3,6]]
+#cols=['dsp_id','geo_id','confiant']
+cols=[0,3,6]
+#cols=[0,3,4]
+
+X_train_sliced=X_train.loc[:,cols]
+X_test_sliced=X_test.loc[:,cols]
 
 model_accuracy=build_and_test_model(model,'RFE Logistic Regression',X_train_sliced,y_train,X_test_sliced,y_test)
 
@@ -164,7 +183,8 @@ model_accuracy=build_and_test_model(model,'KNN',X_train,y_train,X_test,y_test)
 
 #------ Majority Vote of All Classifiers-----##
 y_predicted_majority=y_predicted.mode(axis=1)
-y_predicted_majority.drop([1], axis=1,inplace=True)
+if(len (y_predicted_majority.columns)>1):
+    y_predicted_majority.drop([1], axis=1,inplace=True)
 model_accuracy= evaluate_model("Majority Vote",y_predicted_majority)
 y_predicted.insert(loc=k,column='y_Majority Vote',value=y_predicted_majority)
 k=k+1
