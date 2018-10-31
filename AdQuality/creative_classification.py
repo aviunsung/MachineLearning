@@ -154,8 +154,8 @@ def build_and_test_model(model,model_name,X_train,y_train,X_test,y_test):
 
 #-----Support Vector Classifier---#
 # Create SVM classification object 
-model = svm.SVC(kernel='linear', C=1,cache_size=400)
-#model_accuracy=build_and_test_model(model,'SVM_Linear',X_train,y_train,X_test,y_test)
+model = svm.SVC(kernel='linear', C=0.1,cache_size=400)
+model_accuracy=build_and_test_model(model,'SVM_Linear',X_train,y_train,X_test,y_test)
 
 #model = svm.SVC(kernel='poly', degree=8,cache_size=400)
 #model_accuracy=build_and_test_model(model,'SVM_Poly',X_train,y_train,X_test,y_test)
@@ -225,9 +225,14 @@ model_accuracy=build_and_test_model(model,'KNN',X_train,y_train,X_test,y_test)
 y_predicted_majority=y_predicted.mode(axis=1)
 if(len (y_predicted_majority.columns)>1):
     y_predicted_majority.drop([1], axis=1,inplace=True)
-model_accuracy= evaluate_model("Majority Vote",y_predicted_majority)
+model_accuracy= evaluate_model("Majority Vote",y_test,y_predicted_majority)
 y_predicted.insert(loc=k,column='y_Majority Vote',value=y_predicted_majority)
 k=k+1
 y_predicted.insert(loc=k,column='y_test',value=y_test)
 
+## Plot Accuracy Report ##
 model_accuracy.plot.bar()
+
+## Plot roc_auc_score Graph ##
+model_accuracy['roc_auc_score'].plot.bar()
+
