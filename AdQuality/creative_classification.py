@@ -10,10 +10,9 @@ import pandas as pd
 from sklearn import svm
 from sklearn import metrics
 from sklearn.feature_extraction import FeatureHasher
-import category_encoders as ce
 
-train_dataset=pd.read_excel("/home/avinash/MachineLearning/AdQuality/Dataset/adquality_train_dataset.xlsx")
-test_dataset = pd.read_excel('/home/avinash/MachineLearning/AdQuality/Dataset/AdQuality_additional_test_data.xlsx')
+train_dataset=pd.read_excel("/home/avinash/personalRepo/MachineLearning/AdQuality/Dataset/adquality_train_dataset.xlsx")
+test_dataset = pd.read_excel('/home/avinash/personalRepo/MachineLearning/AdQuality/Dataset/AdQuality_additional_test_data.xlsx')
 
 #exclude ucrid
 train_dataset.drop(['ucrid'], axis=1,inplace=True)
@@ -155,7 +154,7 @@ def build_and_test_model(model,model_name,X_train,y_train,X_test,y_test):
 #-----Support Vector Classifier---#
 # Create SVM classification object 
 model = svm.SVC(kernel='linear', C=0.1,cache_size=400)
-model_accuracy=build_and_test_model(model,'SVM_Linear',X_train,y_train,X_test,y_test)
+#model_accuracy=build_and_test_model(model,'SVM_Linear',X_train,y_train,X_test,y_test)
 
 #model = svm.SVC(kernel='poly', degree=8,cache_size=400)
 #model_accuracy=build_and_test_model(model,'SVM_Poly',X_train,y_train,X_test,y_test)
