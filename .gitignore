@@ -106,3 +106,4 @@ venv.bak/
 .idea
 train_dataset/
 test_dataset/
+.dat

@@ -9,8 +9,8 @@ Created on Mon Mar 18 14:28:30 2019
 import pandas as pd
 import seaborn as sns
 
-train_dataset=pd.read_csv("/home/avinash/personalRepo/MachineLearning/Throttling/train_dataset/Hour1_30thJan/156307.tsv",delimiter='\t',encoding='utf-8')
-test_dataset = pd.read_csv('/home/avinash/personalRepo/MachineLearning/Throttling/test_dataset/156307.tsv',delimiter='\t',encoding='utf-8')
+train_dataset=pd.read_csv("/home/avinash/personalRepo/MachineLearning/Throttling/train_dataset/Hour1_30thJan/155967.tsv",delimiter='\t',encoding='utf-8')
+test_dataset = pd.read_csv('/home/avinash/personalRepo/MachineLearning/Throttling/test_dataset/155967.tsv',delimiter='\t',encoding='utf-8')
 
 train_dataset_raw = train_dataset.copy()  # Save original data set, just in case.
 
@@ -145,3 +145,8 @@ def build_and_test_model(model,model_name,X_train,y_train,X_test,y_test):
 from sklearn import tree
 model = tree.DecisionTreeClassifier(criterion='entropy',max_depth=7,max_features=2)
 model_accuracy=build_and_test_model(model,'Decision Tree',X_train,y_train,X_test,y_test)
+
+
+from sklearn.linear_model import LogisticRegression
+model = LogisticRegression(solver='liblinear',C=0.01)
+model_accuracy=build_and_test_model(model,'Logistic Regression',X_train,y_train,X_test,y_test)
