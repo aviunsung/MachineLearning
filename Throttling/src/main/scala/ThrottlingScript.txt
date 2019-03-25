@@ -12,7 +12,7 @@ Logger.getLogger("org").setLevel(Level.ERROR)
 val spark=SparkSession.builder().config("spark.driver.cores",4).config("spark.driver.memory","4g").config("spark.executor.memory","4g").getOrCreate()
 
 var data=spark.read.option("header","true").option("inferSchema","true").option("delimiter", "\t").format("csv").load("/home/avinash/personalRepo/MachineLearning/Throttling/train_dataset/Hour1_30thJan/156307.tsv")
-data.printSchema()
+data.printSchema
 data.columns.size
 data.head(5)
 data.count()
@@ -88,9 +88,9 @@ predictions.groupBy("label").count.show
 
 //////Model Evaluation///////////////////
 import org.apache.spark.mllib.evaluation.MulticlassMetrics
-var predictionAndLabels= predictions.select($"prediction",$"label").as[(Double,Double)].rdd
-
-val metrics=new MulticlassMetrics(predictionAndLabels)
-
-println("Confusion Matrix:;")
+//var predictionAndLabels= predictions.select($"prediction",$"label").as[(Double,Double)].rdd
+//
+//val metrics=new MulticlassMetrics(predictionAndLabels)
+//
+//println("Confusion Matrix:;")
 println(metrics.confusionMatrix)

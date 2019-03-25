@@ -1,12 +1,16 @@
 package model
 
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.ml.classification.{LogisticRegression, LogisticRegressionModel}
+import org.apache.spark.ml.classification._
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
 import org.apache.spark.{SparkConf, sql}
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.Pipeline
+import org.apache.spark.mllib.evaluation.MulticlassMetrics
+import org.apache.spark.sql.functions.col
+import org.apache.spark.ml.evaluation._
+
 
 object Throttling {
   Logger.getLogger("org").setLevel(Level.ERROR)
@@ -23,9 +27,21 @@ object Throttling {
     trainingData=dataPreparation(trainingData)
     testData=dataPreparation(testData)
 
-    var model=trainLRModel(trainingData)
-    val predictions=testModel(model,testData)
-    evaluateModel(predictions)
+    buildAndTestLRModel(trainingData, testData)
+    buildAndTestLRDecisionTreeModel(trainingData,testData)
+
+  }
+  private def buildAndTestLRModel(trainingData: DataFrame, testData: DataFrame) = {
+    var model = trainLRModel(trainingData)
+    val predictions = testLRModel(model, testData)
+    evaluateModel(predictions, "LR")
+  }
+
+
+  private def buildAndTestLRDecisionTreeModel(trainingData: DataFrame, testData: DataFrame) = {
+    var model = trainDecisionTreeModel(trainingData)
+    val predictions = testDecisionTreeModel(model, testData)
+    evaluateModel(predictions, "Decision Tree")
   }
 
   def loadData(path:String): DataFrame = {
@@ -40,8 +56,8 @@ object Throttling {
     println("Printing Top 5 Rows....")
     println(data.show(5))
     println("Total Rows::"+data.count())
-    println("Describing Data Schema....")
-    data.describe().show()
+    //println("Describing Data Schema....")
+    //data.describe().show()
     //Rename Label Column for ML models
     data = data.withColumnRenamed("verified_digit", "label")
     println("Printing Label Count....")
@@ -128,8 +144,17 @@ object Throttling {
     return model
   }
 
-  def testModel(model: LogisticRegressionModel, testData: DataFrame):DataFrame = {
-    println("Training ML Model....")
+  def trainDecisionTreeModel(trainingData: DataFrame) :DecisionTreeClassificationModel={
+    println("Training Decision Tree Model....")
+    val dt = new DecisionTreeClassifier()
+      .setLabelCol("label")
+      .setFeaturesCol("scaledFeatures")
+    val model=dt.fit(trainingData)
+    return model
+  }
+
+  def testLRModel(model: LogisticRegressionModel, testData: DataFrame):DataFrame = {
+    println("Testing LR Model....")
     val predictions=model.transform(testData)
     println("Printing Predicitons Data Schema....")
     predictions.printSchema()
@@ -138,11 +163,31 @@ object Throttling {
     return predictions
   }
 
-  def evaluateModel(pedictions: DataFrame) = {
-    import org.apache.spark.mllib.evaluation.MulticlassMetrics
-    //var predictionAndLabels= predictions.select($"prediction",$"label").as[(Double,Double)].rdd
-    //val metrics=new MulticlassMetrics(predictionAndLabels)
+  def testDecisionTreeModel(model: DecisionTreeClassificationModel, testData: DataFrame):DataFrame = {
+    println("Testing Decision Tree  Model....")
+    val predictions=model.transform(testData)
+    println("Printing Predicitons Data Schema....")
+    predictions.printSchema()
+    println("Prediction Count::"+predictions.groupBy("prediction").count.show)
+    println("label Count"+predictions.groupBy("label").count.show)
+    return predictions
+  }
+
+
+  def evaluateModel(predictions: DataFrame,modelName:String) = {
+    println("Evaluating Model ::"+modelName)
+    val evaluator = new MulticlassClassificationEvaluator()
+      .setLabelCol("label")
+      .setPredictionCol("prediction")
+      .setMetricName("accuracy")
+    val accuracy = evaluator.evaluate(predictions)
+    println("Accuracy = " + accuracy)
+
+    var predictionAndLabels= predictions.select(col("prediction"),col("label")).rdd.map{
+      row => (row.getAs[Double](0), row.getAs[Integer](1).doubleValue())
+    }
+    val metrics=new MulticlassMetrics(predictionAndLabels)
     println("Confusion Matrix:;")
-    // println(metrics.confusionMatrix)
+    println(metrics.confusionMatrix)
   }
 }
