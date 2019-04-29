@@ -8,6 +8,8 @@ Created on Mon Mar 18 14:28:30 2019
 
 import pandas as pd
 import seaborn as sns
+import warnings
+warnings.filterwarnings("ignore")
 
 train_dataset=pd.read_csv("/home/avinash/personalRepo/MachineLearning/Throttling/train_dataset/Hour1_30thJan/155967.tsv",delimiter='\t',encoding='utf-8')
 test_dataset = pd.read_csv('/home/avinash/personalRepo/MachineLearning/Throttling/test_dataset/155967.tsv',delimiter='\t',encoding='utf-8')
@@ -40,14 +42,14 @@ def data_preprocessing(train_dataset):
     ##Drop null values
     #train_dataset=train_dataset.dropna(subset=['gctry']) 
     train_dataset.drop(['id','pi','dab','ab','ai','ut','wcid'],axis=1, inplace=True)
-    train_dataset['md'].fillna('NA')
+    train_dataset['md'].fillna('NA', inplace=True)
     train_dataset=train_dataset.dropna()
     draw_missing_data_table(train_dataset) 
     len(train_dataset)
     
-    means=train_dataset.groupby('gctry')['verified_digit'].count()
+    train_dataset.groupby('gctry')['verified_digit'].count()
     
-    sns.barplot(x=train_dataset['verified_digit'].value_counts().index,y=train_dataset['verified_digit'].value_counts().values)
+    #sns.barplot(x=train_dataset['verified_digit'].value_counts().index,y=train_dataset['verified_digit'].value_counts().values)
     
     ##Feature extraction
     # =============================================================================
@@ -60,7 +62,7 @@ def data_preprocessing(train_dataset):
     ##Feature selection
     train_dataset.drop(['pid','hour','sid','pfi','uh','je','los','oi','di','adtype'],axis=1, inplace=True)
     
-    X_train=train_dataset.iloc[:,0:11]
+    X_train=train_dataset.iloc[:,0:10]
     X_train['pb']=train_dataset['pb']
     
     ##Feature scaling/transformation
@@ -73,21 +75,47 @@ def data_preprocessing(train_dataset):
     y_train=train_dataset['verified_digit']
     
     #Binary Encoding
-# =============================================================================
-#     b_encoder = ce.BinaryEncoder(cols=columns)
-#     X_train = b_encoder.fit_transform(X_train)
-#     
-# =============================================================================
+    #b_encoder = ce.BinaryEncoder(cols=columns)
+    #X_train = b_encoder.fit_transform(X_train)
     return X_train,y_train
 
 X_train,y_train=data_preprocessing(train_dataset)
 X_test,y_test=data_preprocessing(test_dataset)
 
+from imblearn.over_sampling import SMOTE
+from imblearn.under_sampling import (RandomUnderSampler, 
+                                     ClusterCentroids,
+                                     TomekLinks,
+                                     NeighbourhoodCleaningRule,
+                                     NearMiss)
+print("Before OverSampling, counts of label '1': {}".format(sum(y_train==1)))
+print("Before OverSampling, counts of label '0': {} \n".format(sum(y_train==0)))
+
+sm = SMOTE(random_state=2)
+X_train, y_train = sm.fit_sample(X_train, y_train.ravel())
+
+# RandomUnderSampler
+#sampler = RandomUnderSampler(sampling_strategy='majority')
+#X_train, y_train = sampler.fit_sample(X_train, y_train)
+
+# ClusterCentroids
+#sampler = ClusterCentroids(ratio={1: 1000, 0: 65})
+#X_rs, y_rs = sampler.fit_sample(X_train, y_train)
+#
+## TomekLinks
+#sampler = TomekLinks(sampling_strategy='majority',random_state=0)
+#X_rs, y_rs = sampler.fit_sample(X_train, y_train)
+
+print("After OverSampling, counts of label '1': {}".format(sum(y_train==1)))
+print("After OverSampling, counts of label '0': {}".format(sum(y_train==0)))
+
 #------feature scaling--------#
-from sklearn.preprocessing import MinMaxScaler
-sc_X=MinMaxScaler()
-X_train=sc_X.fit_transform(X_train)
-X_test=sc_X.fit_transform(X_test)
+# =============================================================================
+from sklearn.preprocessing import MinMaxScaler,StandardScaler,Normalizer
+#sc_X=StandardScaler()
+#X_train=sc_X.fit_transform(X_train)
+#X_test=sc_X.fit_transform(X_test)
+# =============================================================================
     
 
 from sklearn import metrics
@@ -145,7 +173,6 @@ def build_and_test_model(model,model_name,X_train,y_train,X_test,y_test):
 from sklearn import tree
 model = tree.DecisionTreeClassifier(criterion='entropy',max_depth=7,max_features=2)
 model_accuracy=build_and_test_model(model,'Decision Tree',X_train,y_train,X_test,y_test)
-
 
 from sklearn.linear_model import LogisticRegression
 model = LogisticRegression(solver='liblinear',C=0.01)
